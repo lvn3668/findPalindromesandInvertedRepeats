@@ -8,6 +8,8 @@
 #include<ctype.h>
 #include "palindromes.h"
 #include "readDNA.cpp"
+# define MINLENGTH 10
+# define MAXLENGTH 20
 char* strng;
 main(int argc,char *argv[])
 {
@@ -21,9 +23,20 @@ main(int argc,char *argv[])
 		minlength=atoi(argv[2]);
 		maxlength=atoi(argv[3]);
 		gaplength=atoi(argv[4]);
-		mismatches=atoi(argv[5]);
-		match=atoi(argv[6]);
-	    	mismatch=atoi(argv[7]);
+		numberofmismatchesallowed=atoi(argv[5]);
+		matchscore=atoi(argv[6]);
+	    	mismatchscore=atoi(argv[7]);
+			if (minlength < MINLENGTH)
+			{
+				print("Minimum length of palindrome / inverted repeat should be greater than  %d", MINLENGTH);
+				exit;
+			}
+			if ( (maxlength > MAXLENGTH) || (maxlength < 0) || (maxlength < minlength))
+			{
+				print("Maximum length of palindrome / inverted repeat should be between %d and %d", MINLENGTH, MAXLENGTH);
+				exit;
+			}
+
 		readDNA(filename);
 	        findpalindromesandinvertedrepeats();
 }
@@ -76,7 +89,7 @@ void findpalindromesandinvertedrepeats()
 					//get 1st string
 					 firststring=(char *)malloc(sizeof(char)*(length+1));
 					 firststring=getsubstr(a,a+length-1,firststring);
-						float cutoff=(length*match)-(mismatches*mismatch);
+						float cutoff=(length*matchscore)-(numberofmismatchesallowed*mismatchscore);
 						for(long int gaplength=0;gaplength<=gaplength;gaplength++)
 						{
 							long int b=a+length+gaplength;
@@ -85,6 +98,8 @@ void findpalindromesandinvertedrepeats()
 							secondstring=getsubstr(b,b+length-1,secondstring);
 					        score_palindrome=0,score_inverse=0,nom_is_inverse=0,nom_is_palindrome=0;
 							//search for palindromes
+							// Move along fwd strand and complementary strand and check for identical bases
+							// Palindrome score = maximum score possible (match value x length of sequence) - (number of mismatches x mismatch score)
 							for(long int forwardcounter=0,reversecounter=length-1;forwardcounter<length,reversecounter>=0;forwardcounter++,reversecounter--)
 							{
 									if(firststring[forwardcounter]==complementary(secondstring[reversecounter]))
@@ -95,6 +110,10 @@ void findpalindromesandinvertedrepeats()
 									}
 							}
 							//search for inverted repeats
+							// Inverted repeat is calculated as
+							// move along fwd strand for sequence one
+							// move along same strand for sequence two (in reverse order)
+							// score calculated = max score (length of fragment x match score) - (number of mismatches x mismatch score)
 							for(long int forwardcounter=0,reversecounter=length-1;forwardcounter<length,reversecounter>=0;forwardcounter++,reversecounter--)
 							{
 									 if(firststring[forwardcounter]==secondstring[reversecounter])
@@ -104,9 +123,11 @@ void findpalindromesandinvertedrepeats()
 										nom_is_inverse++;			    			
 									}
 							}
-							score_inverse=(length*match)-(nom_is_inverse*mismatch);	
-							score_palindrome=(length*match)-(nom_is_palindrome*mismatch);	
+							score_inverse=(length*matchscore)-(nom_is_inverse*mismatchscore);	
+							score_palindrome=(length*matchscore)-(nom_is_palindrome*mismatchscore);	
 							//if score is greater than or equal to cutoff , then string is palindrome 
+							// if score is greater than or equal to cutoff, string is inverted repeat 
+							// Write out to file, both fragments and gaplength along with score 
 									if((score_inverse>=cutoff)&&(score_inverse>=score_palindrome))
 									{
 										fprintf(pointertoinvertedrepeatsfile,"\n location %d %s %d %s",a,firststring,gaplength,secondstring);	
